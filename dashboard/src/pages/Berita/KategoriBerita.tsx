@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import PageBreadcrumb from "../../components/common/PageBreadcrumb";
 import PageMeta from "../../components/common/PageMeta";
 import { useToast } from "../../context/ToastContext";
+import { useConfirm } from "../../context/ConfirmContext";
 import { apiGet, apiPost, apiDelete } from "../../lib/api";
 
 interface Kategori {
@@ -14,6 +15,7 @@ interface Kategori {
 
 export default function KategoriBerita() {
     const { addToast } = useToast();
+    const confirm = useConfirm();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [categories, setCategories] = useState<Kategori[]>([]);
@@ -69,7 +71,14 @@ export default function KategoriBerita() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Yakin ingin menghapus kategori ini?")) return;
+        const confirmed = await confirm({
+            title: 'Hapus Kategori',
+            message: 'Yakin ingin menghapus kategori ini?',
+            confirmText: 'Ya, Hapus',
+            cancelText: 'Batal',
+            type: 'danger'
+        });
+        if (!confirmed) return;
         setDeleting(id);
         try {
             const response = await apiDelete(`/berita/kategori?id=${id}`);

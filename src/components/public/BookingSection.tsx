@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 export default function BookingSection() {
     const [formData, setFormData] = useState({
         nama_pasien: '',
+        nik: '',
+        alamat: '',
         telepon: '',
         email: '',
         dokter_id: '',
@@ -14,12 +15,69 @@ export default function BookingSection() {
         keluhan: '',
     });
 
-    // Placeholder doctors - will be fetched from API
-    const doctors = [
-        { id: '1', nama: 'dr. Contoh Spesialis, Sp.M' },
-        { id: '2', nama: 'dr. Praktisi Mata, Sp.M' },
-        { id: '3', nama: 'dr. Ahli Retina, Sp.M(K)' },
-    ];
+    const [doctors, setDoctors] = useState<{ id: string, nama: string }[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [fetchingDoctors, setFetchingDoctors] = useState(true);
+    const [success, setSuccess] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchDoctors = async () => {
+            try {
+                const response = await fetch('/api/v1/dokter?active=true');
+                const data = await response.json();
+                if (data.success) {
+                    setDoctors(data.data.items);
+                }
+            } catch (err) {
+                console.error('Failed to fetch doctors:', err);
+            } finally {
+                setFetchingDoctors(false);
+            }
+        };
+        fetchDoctors();
+    }, []);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            const response = await fetch('/api/v1/booking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                setSuccess('Booking berhasil diajukan! Cek WhatsApp Anda untuk konfirmasi.');
+                setFormData({
+                    nama_pasien: '',
+                    nik: '',
+                    alamat: '',
+                    telepon: '',
+                    email: '',
+                    dokter_id: '',
+                    tanggal: '',
+                    waktu: '',
+                    keluhan: '',
+                });
+            } else {
+                setError(data.message || 'Gagal mengirim booking');
+            }
+        } catch (err) {
+            setError('Terjadi kesalahan koneksi');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const timeSlots = [
         '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
@@ -27,11 +85,6 @@ export default function BookingSection() {
         '15:00', '15:30', '16:00', '16:30',
     ];
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    // Get tomorrow's date for min date
     const getTomorrowDate = () => {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -106,7 +159,18 @@ export default function BookingSection() {
                             Form Booking
                         </h3>
 
-                        <form className="space-y-5">
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            {success && (
+                                <div className="p-4 bg-green-50 text-green-700 rounded-lg border border-green-200 text-sm">
+                                    {success}
+                                </div>
+                            )}
+                            {error && (
+                                <div className="p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 text-sm">
+                                    {error}
+                                </div>
+                            )}
+
                             <div>
                                 <label className="form-label">Nama Lengkap *</label>
                                 <input
@@ -117,6 +181,35 @@ export default function BookingSection() {
                                     className="form-input"
                                     placeholder="Masukkan nama lengkap"
                                     required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="form-label">NIK (Nomor Induk Kependudukan)</label>
+                                <input
+                                    type="text"
+                                    name="nik"
+                                    value={formData.nik}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '').slice(0, 16);
+                                        setFormData({ ...formData, nik: val });
+                                    }}
+                                    className="form-input"
+                                    placeholder="16 digit NIK (opsional)"
+                                    maxLength={16}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">NIK diperlukan untuk integrasi dengan SIMRS</p>
+                            </div>
+
+                            <div>
+                                <label className="form-label">Alamat</label>
+                                <input
+                                    type="text"
+                                    name="alamat"
+                                    value={formData.alamat}
+                                    onChange={handleChange}
+                                    className="form-input"
+                                    placeholder="Alamat lengkap"
                                 />
                             </div>
 
@@ -154,8 +247,9 @@ export default function BookingSection() {
                                     onChange={handleChange}
                                     className="form-input"
                                     required
+                                    disabled={fetchingDoctors}
                                 >
-                                    <option value="">-- Pilih Dokter --</option>
+                                    <option value="">{fetchingDoctors ? 'Memuat Dokter...' : '-- Pilih Dokter --'}</option>
                                     {doctors.map((doc) => (
                                         <option key={doc.id} value={doc.id}>{doc.nama}</option>
                                     ))}
@@ -204,15 +298,25 @@ export default function BookingSection() {
                                 ></textarea>
                             </div>
 
-                            <Link
-                                href="/booking"
-                                className="btn btn-primary w-full justify-center"
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="btn btn-primary w-full justify-center disabled:opacity-50"
                             >
-                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                Lanjut ke Halaman Booking
-                            </Link>
+                                {loading ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/20 border-t-white mr-2"></div>
+                                        Memproses...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        Booking Sekarang
+                                    </>
+                                )}
+                            </button>
 
                             <p className="text-xs text-[var(--color-gray-500)] text-center">
                                 Dengan melakukan booking, Anda menyetujui syarat dan ketentuan yang berlaku.

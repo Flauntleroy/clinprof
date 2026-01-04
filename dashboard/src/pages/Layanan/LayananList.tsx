@@ -3,6 +3,8 @@ import { Link } from "react-router";
 import PageBreadcrumb from "../../components/common/PageBreadcrumb";
 import PageMeta from "../../components/common/PageMeta";
 import { apiGet, apiDelete, PaginatedData, getMediaUrl } from "../../lib/api";
+import { useToast } from "../../context/ToastContext";
+import { useConfirm } from "../../context/ConfirmContext";
 
 interface Layanan {
     id: string;
@@ -15,6 +17,8 @@ interface Layanan {
 }
 
 export default function LayananList() {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const [services, setServices] = useState<Layanan[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
@@ -33,14 +37,22 @@ export default function LayananList() {
     }, []);
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Apakah Anda yakin ingin menghapus layanan ini?")) return;
+        const confirmed = await confirm({
+            title: 'Hapus Layanan',
+            message: 'Apakah Anda yakin ingin menghapus layanan ini?',
+            confirmText: 'Ya, Hapus',
+            cancelText: 'Batal',
+            type: 'danger'
+        });
+        if (!confirmed) return;
 
         setDeleting(id);
         const response = await apiDelete(`/layanan/${id}`);
         if (response.success) {
             setServices(services.filter((s) => s.id !== id));
+            addToast('success', 'Layanan berhasil dihapus', 'Berhasil');
         } else {
-            alert(response.error || "Gagal menghapus layanan");
+            addToast('error', response.error || 'Gagal menghapus layanan', 'Gagal');
         }
         setDeleting(null);
     };

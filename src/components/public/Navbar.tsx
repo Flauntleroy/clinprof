@@ -4,9 +4,20 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
+interface LogoSettings {
+    logo_url: string;
+    logo_width: string;
+    logo_height: string;
+}
+
 export default function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [logo, setLogo] = useState<LogoSettings>({
+        logo_url: '/Makula Bahalap-Landscape.png',
+        logo_width: '180',
+        logo_height: '50',
+    });
 
     useEffect(() => {
         const handleScroll = () => {
@@ -16,13 +27,35 @@ export default function Navbar() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    useEffect(() => {
+        const fetchLogo = async () => {
+            try {
+                const response = await fetch('/api/v1/konten?kunci=pengaturan_umum');
+                const data = await response.json();
+                if (data.success && data.data?.nilai) {
+                    const settings = data.data.nilai;
+                    if (settings.logo_url) {
+                        setLogo({
+                            logo_url: settings.logo_url,
+                            logo_width: settings.logo_width || '180',
+                            logo_height: settings.logo_height || '50',
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch logo:', error);
+            }
+        };
+        fetchLogo();
+    }, []);
+
     const navLinks = [
-        { href: '#tentang', label: 'Tentang' },
-        { href: '#dokter', label: 'Dokter' },
-        { href: '#layanan', label: 'Layanan' },
-        { href: '#fasilitas', label: 'Fasilitas' },
+        { href: '/#tentang', label: 'Tentang' },
+        { href: '/dokter', label: 'Dokter' },
+        { href: '/layanan', label: 'Layanan' },
+        { href: '/fasilitas', label: 'Fasilitas' },
         { href: '/berita', label: 'Berita' },
-        { href: '#kontak', label: 'Kontak' },
+        { href: '/#kontak', label: 'Kontak' },
     ];
 
     return (
@@ -37,10 +70,10 @@ export default function Navbar() {
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-3">
                         <Image
-                            src="/Makula Bahalap-Landscape.png"
+                            src={logo.logo_url}
                             alt="Makula Bahalap"
-                            width={180}
-                            height={50}
+                            width={parseInt(logo.logo_width)}
+                            height={parseInt(logo.logo_height)}
                             className="h-10 w-auto"
                         />
                     </Link>

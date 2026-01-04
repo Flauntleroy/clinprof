@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import PageBreadcrumb from "../../components/common/PageBreadcrumb";
 import PageMeta from "../../components/common/PageMeta";
 import { apiGet, apiPut, apiPost, apiDelete } from "../../lib/api";
+import { useToast } from "../../context/ToastContext";
+import { useConfirm } from "../../context/ConfirmContext";
 
 interface Dokter {
     id: string;
@@ -21,6 +23,8 @@ interface Jadwal {
 const HARI_LIST = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
 
 export default function JadwalDokter() {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const [jadwal, setJadwal] = useState<Jadwal[]>([]);
     const [doctors, setDoctors] = useState<Dokter[]>([]);
     const [loading, setLoading] = useState(true);
@@ -81,16 +85,18 @@ export default function JadwalDokter() {
             if (response.success) {
                 fetchData(); // Refresh to get normalized data and doctor names
                 resetForm();
+                addToast('success', 'Jadwal berhasil diupdate', 'Berhasil');
             } else {
-                alert(response.error || "Gagal mengupdate jadwal");
+                addToast('error', response.error || 'Gagal mengupdate jadwal', 'Gagal');
             }
         } else {
             const response = await apiPost("/jadwal", payload);
             if (response.success) {
                 fetchData();
                 resetForm();
+                addToast('success', 'Jadwal berhasil ditambahkan', 'Berhasil');
             } else {
-                alert(response.error || "Gagal menambah jadwal");
+                addToast('error', response.error || 'Gagal menambah jadwal', 'Gagal');
             }
         }
 
@@ -110,13 +116,21 @@ export default function JadwalDokter() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Hapus jadwal ini?")) return;
+        const confirmed = await confirm({
+            title: 'Hapus Jadwal',
+            message: 'Apakah Anda yakin ingin menghapus jadwal ini?',
+            confirmText: 'Ya, Hapus',
+            cancelText: 'Batal',
+            type: 'danger'
+        });
+        if (!confirmed) return;
 
         const response = await apiDelete(`/jadwal/${id}`);
         if (response.success) {
             fetchData();
+            addToast('success', 'Jadwal berhasil dihapus', 'Berhasil');
         } else {
-            alert(response.error || "Gagal menghapus jadwal");
+            addToast('error', response.error || 'Gagal menghapus jadwal', 'Gagal');
         }
     };
 

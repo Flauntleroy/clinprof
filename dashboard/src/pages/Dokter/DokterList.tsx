@@ -3,6 +3,8 @@ import { Link } from "react-router";
 import PageBreadcrumb from "../../components/common/PageBreadcrumb";
 import PageMeta from "../../components/common/PageMeta";
 import { apiGet, apiDelete, PaginatedData, getMediaUrl } from "../../lib/api";
+import { useToast } from "../../context/ToastContext";
+import { useConfirm } from "../../context/ConfirmContext";
 
 interface Dokter {
     id: string;
@@ -15,6 +17,8 @@ interface Dokter {
 }
 
 export default function DokterList() {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const [doctors, setDoctors] = useState<Dokter[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
@@ -33,14 +37,22 @@ export default function DokterList() {
     }, []);
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Apakah Anda yakin ingin menghapus dokter ini?")) return;
+        const confirmed = await confirm({
+            title: 'Hapus Dokter',
+            message: 'Apakah Anda yakin ingin menghapus dokter ini?',
+            confirmText: 'Ya, Hapus',
+            cancelText: 'Batal',
+            type: 'danger'
+        });
+        if (!confirmed) return;
 
         setDeleting(id);
         const response = await apiDelete(`/dokter/${id}`);
         if (response.success) {
             setDoctors(doctors.filter((d) => d.id !== id));
+            addToast('success', 'Dokter berhasil dihapus', 'Berhasil');
         } else {
-            alert(response.error || "Gagal menghapus dokter");
+            addToast('error', response.error || 'Gagal menghapus dokter', 'Gagal');
         }
         setDeleting(null);
     };

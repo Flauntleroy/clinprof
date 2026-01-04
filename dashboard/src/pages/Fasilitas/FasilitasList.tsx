@@ -3,6 +3,8 @@ import { Link } from "react-router";
 import PageBreadcrumb from "../../components/common/PageBreadcrumb";
 import PageMeta from "../../components/common/PageMeta";
 import { apiGet, apiDelete, PaginatedData, getMediaUrl } from "../../lib/api";
+import { useToast } from "../../context/ToastContext";
+import { useConfirm } from "../../context/ConfirmContext";
 
 interface Fasilitas {
     id: string;
@@ -15,6 +17,8 @@ interface Fasilitas {
 }
 
 export default function FasilitasList() {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const [facilities, setFacilities] = useState<Fasilitas[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
@@ -34,14 +38,22 @@ export default function FasilitasList() {
     }, [activeTab]);
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Apakah Anda yakin ingin menghapus item ini?")) return;
+        const confirmed = await confirm({
+            title: 'Hapus Fasilitas',
+            message: 'Apakah Anda yakin ingin menghapus item ini?',
+            confirmText: 'Ya, Hapus',
+            cancelText: 'Batal',
+            type: 'danger'
+        });
+        if (!confirmed) return;
 
         setDeleting(id);
         const response = await apiDelete(`/fasilitas/${id}`);
         if (response.success) {
             setFacilities(facilities.filter((f) => f.id !== id));
+            addToast('success', 'Fasilitas berhasil dihapus', 'Berhasil');
         } else {
-            alert(response.error || "Gagal menghapus");
+            addToast('error', response.error || 'Gagal menghapus', 'Gagal');
         }
         setDeleting(null);
     };

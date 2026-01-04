@@ -13,6 +13,7 @@ import {
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
+import { apiGet, getMediaUrl } from "../lib/api";
 
 type NavItem = {
   name: string;
@@ -80,6 +81,7 @@ const othersItems: NavItem[] = [
       { name: "Hero Section", path: "/konten/hero", pro: false },
       { name: "Tentang Kami", path: "/konten/tentang", pro: false },
       { name: "Informasi Kontak", path: "/konten/kontak", pro: false },
+      { name: "Footer", path: "/konten/footer", pro: false },
     ],
   },
   {
@@ -104,6 +106,32 @@ const AppSidebar: React.FC = () => {
     {}
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [logoUrl, setLogoUrl] = useState<string>("/images/logo/logo-landscape.png");
+  const [logoWidth, setLogoWidth] = useState<number>(180);
+  const [logoHeight, setLogoHeight] = useState<number>(50);
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const response = await apiGet<{ nilai: { logo_url?: string; logo_width?: string; logo_height?: string } }>("/konten?kunci=pengaturan_umum");
+        if (response.success && response.data?.nilai) {
+          const settings = response.data.nilai;
+          if (settings.logo_url) {
+            setLogoUrl(getMediaUrl(settings.logo_url));
+          }
+          if (settings.logo_width) {
+            setLogoWidth(parseInt(settings.logo_width) || 180);
+          }
+          if (settings.logo_height) {
+            setLogoHeight(parseInt(settings.logo_height) || 50);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch logo:", error);
+      }
+    };
+    fetchLogo();
+  }, []);
 
   const isActive = useCallback(
     (path: string) => location.pathname === path,
@@ -295,10 +323,11 @@ const AppSidebar: React.FC = () => {
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <img
-                src="/images/logo/logo-landscape.png"
+                src={logoUrl}
                 alt="Makula Bahalap"
-                width={180}
-                className="h-auto"
+                width={logoWidth}
+                height={logoHeight}
+                className="object-contain"
               />
             </>
           ) : (

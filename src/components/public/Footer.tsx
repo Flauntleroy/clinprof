@@ -1,8 +1,44 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
+interface LogoSettings {
+    logo_url: string;
+    logo_width: string;
+    logo_height: string;
+}
+
 export default function Footer() {
     const currentYear = new Date().getFullYear();
+    const [logo, setLogo] = useState<LogoSettings>({
+        logo_url: '/Makula Bahalap-Landscape.png',
+        logo_width: '180',
+        logo_height: '50',
+    });
+
+    useEffect(() => {
+        const fetchLogo = async () => {
+            try {
+                const response = await fetch('/api/v1/konten?kunci=pengaturan_umum');
+                const data = await response.json();
+                if (data.success && data.data?.nilai) {
+                    const settings = data.data.nilai;
+                    if (settings.logo_url) {
+                        setLogo({
+                            logo_url: settings.logo_url,
+                            logo_width: settings.logo_width || '180',
+                            logo_height: settings.logo_height || '50',
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch logo:', error);
+            }
+        };
+        fetchLogo();
+    }, []);
 
     return (
         <footer className="bg-[var(--color-primary)] text-white">
@@ -11,12 +47,12 @@ export default function Footer() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
                     {/* Brand */}
                     <div className="lg:col-span-1">
-                        <Image
-                            src="/Makula Bahalap-Landscape.svg"
+                        <img
+                            src={logo.logo_url}
                             alt="Makula Bahalap"
-                            width={180}
-                            height={50}
-                            className="h-12 w-auto mb-4 brightness-0 invert"
+                            width={parseInt(logo.logo_width)}
+                            height={parseInt(logo.logo_height)}
+                            className="h-12 w-auto mb-4 brightness-0 invert object-contain"
                         />
                         <p className="text-[var(--color-gray-300)] mb-6">
                             Klinik Spesialis Mata terpercaya dengan pelayanan prima dan teknologi modern.

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Navbar, Footer } from '@/components/public';
+import SafeHTML from '@/components/SafeHTML';
 import { query, queryOne, execute } from '@/lib/db';
 
 interface Berita {
@@ -195,9 +196,9 @@ export default async function BeritaDetailPage({
                                 )}
 
                                 {berita.konten && (
-                                    <div
+                                    <SafeHTML
+                                        html={berita.konten}
                                         className="prose prose-lg max-w-none prose-headings:text-[var(--color-primary)] prose-a:text-[var(--color-accent)] prose-img:rounded-xl break-words overflow-hidden [&_*]:break-words [&_*]:overflow-wrap-anywhere"
-                                        dangerouslySetInnerHTML={{ __html: berita.konten }}
                                     />
                                 )}
 

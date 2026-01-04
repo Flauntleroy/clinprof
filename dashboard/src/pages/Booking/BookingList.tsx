@@ -2,12 +2,15 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import PageBreadcrumb from "../../components/common/PageBreadcrumb";
 import PageMeta from "../../components/common/PageMeta";
-import { apiGet, apiPut, PaginatedData } from "../../lib/api";
+import { apiGet, apiPut, apiPost, PaginatedData } from "../../lib/api";
+import { useToast } from "../../context/ToastContext";
+import { useConfirm } from "../../context/ConfirmContext";
 
 interface Booking {
     id: string;
     kode_booking: string;
     nama_pasien: string;
+    nik: string | null;
     telepon: string;
     email: string | null;
     tanggal: string;
@@ -15,9 +18,10 @@ interface Booking {
     dokter_id: string;
     dokter_nama: string;
     keluhan: string | null;
-    status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+    status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "CHECKIN";
     catatan_admin: string | null;
     notifikasi_terkirim: boolean;
+    no_rawat: string | null;
     created_at: string;
 }
 
@@ -26,9 +30,12 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     CONFIRMED: { label: "Dikonfirmasi", color: "bg-blue-100 text-blue-700" },
     COMPLETED: { label: "Selesai", color: "bg-green-100 text-green-700" },
     CANCELLED: { label: "Dibatalkan", color: "bg-red-100 text-red-700" },
+    CHECKIN: { label: "Check-In SIMRS", color: "bg-purple-100 text-purple-700" },
 };
 
 export default function BookingList() {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>("");
@@ -55,6 +62,27 @@ export default function BookingList() {
             setBookings((prev) =>
                 prev.map((b) => (b.id === id ? { ...b, status: newStatus as Booking["status"] } : b))
             );
+        }
+        setUpdating(null);
+    };
+
+    const handleTransfer = async (id: string) => {
+        const confirmed = await confirm({
+            title: 'Transfer ke SIMRS',
+            message: 'Transfer booking ini ke SIMRS? Pastikan NIK pasien sudah terisi dan terdaftar di SIMRS.',
+            confirmText: 'Ya, Transfer',
+            cancelText: 'Batal',
+            type: 'info'
+        });
+        if (!confirmed) return;
+
+        setUpdating(id);
+        const response = await apiPost(`/booking/${id}/transfer`, {});
+        if (response.success) {
+            addToast('success', `No. Rawat: ${(response.data as { no_rawat: string }).no_rawat}`, 'Transfer Berhasil');
+            fetchBookings();
+        } else {
+            addToast('error', response.error || response.message || 'Unknown error', 'Transfer Gagal');
         }
         setUpdating(null);
     };
@@ -169,6 +197,20 @@ export default function BookingList() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-end gap-2">
+                                                {/* Terima Booking Button - only for PENDING */}
+                                                {booking.status === "PENDING" && (
+                                                    <button
+                                                        onClick={() => handleStatusChange(booking.id, "CONFIRMED")}
+                                                        disabled={updating === booking.id}
+                                                        className="px-3 py-1.5 bg-green-500 text-white text-xs font-semibold rounded-lg hover:bg-green-600 transition disabled:opacity-50 flex items-center gap-1"
+                                                        title="Terima Booking"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                        Terima
+                                                    </button>
+                                                )}
                                                 <a
                                                     href={`https://wa.me/${booking.telepon.replace(/^0/, "62")}`}
                                                     target="_blank"
@@ -190,6 +232,18 @@ export default function BookingList() {
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
                                                 </Link>
+                                                {booking.status === "CONFIRMED" && (
+                                                    <button
+                                                        onClick={() => handleTransfer(booking.id)}
+                                                        disabled={updating === booking.id}
+                                                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition disabled:opacity-50"
+                                                        title="Transfer ke SIMRS"
+                                                    >
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                                        </svg>
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

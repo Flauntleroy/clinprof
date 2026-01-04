@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server';
 import { query, queryOne, execute } from '@/lib/db';
 import { successResponse, errorResponse, validateRequired, generateId, getPaginationParams, paginatedResponse } from '@/lib/api';
 import { requireAuth } from '@/lib/auth';
-import { sendBookingConfirmation } from '@/lib/whatsapp';
+import { sendBookingConfirmation, sendBookingNotificationToAdmin, getAdminPhone } from '@/lib/whatsapp';
+import { checkRateLimit, getClientIP } from '@/lib/rateLimit';
 
 interface Booking {
     id: string;
@@ -29,6 +30,12 @@ interface CreateBookingBody {
     waktu: string;
     dokter_id: string;
     keluhan?: string;
+    // SIMRS Integration fields
+    nik?: string;
+    nomor_kartu?: string;
+    alamat?: string;
+    kd_poli?: string;
+    kd_pj?: string;
 }
 
 // Generate booking code
@@ -98,6 +105,17 @@ export async function GET(request: NextRequest) {
 // POST /api/v1/booking - Create new booking (public)
 export async function POST(request: NextRequest) {
     try {
+        // Rate limiting: max 5 bookings per IP per minute
+        const clientIP = getClientIP(request);
+        const rateLimit = checkRateLimit(`booking:${clientIP}`, {
+            maxRequests: 5,
+            windowMs: 60000, // 1 minute
+        });
+
+        if (!rateLimit.allowed) {
+            return errorResponse('Terlalu banyak permintaan. Silakan coba lagi dalam beberapa saat.', 429);
+        }
+
         const body: CreateBookingBody = await request.json();
 
         // Validate required fields
@@ -129,17 +147,33 @@ export async function POST(request: NextRequest) {
         const kodeBooking = generateBookingCode();
 
         await execute(
-            `INSERT INTO booking (id, kode_booking, nama_pasien, telepon, email, tanggal, waktu, dokter_id, keluhan) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [id, kodeBooking, body.nama_pasien, body.telepon, body.email || null, body.tanggal, body.waktu, body.dokter_id, body.keluhan || null]
+            `INSERT INTO booking (id, kode_booking, nama_pasien, nik, nomor_kartu, alamat, telepon, email, tanggal, waktu, dokter_id, kd_poli, kd_pj, keluhan) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                id,
+                kodeBooking,
+                body.nama_pasien,
+                body.nik || null,
+                body.nomor_kartu || null,
+                body.alamat || null,
+                body.telepon,
+                body.email || null,
+                body.tanggal,
+                body.waktu,
+                body.dokter_id,
+                body.kd_poli || null,
+                body.kd_pj || 'UMU',
+                body.keluhan || null
+            ]
         );
 
-        // Send WhatsApp notification
+        // Send WhatsApp notification to patient
+        const tanggalFormatted = new Date(body.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const waResult = await sendBookingConfirmation({
             telepon: body.telepon,
             nama: body.nama_pasien,
             kode: kodeBooking,
-            tanggal: new Date(body.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+            tanggal: tanggalFormatted,
             waktu: body.waktu,
             dokter: dokter.nama,
         });
@@ -147,6 +181,22 @@ export async function POST(request: NextRequest) {
         // Update notification status
         if (waResult.success) {
             await execute('UPDATE booking SET notifikasi_terkirim = TRUE WHERE id = ?', [id]);
+        }
+
+        // Send WhatsApp notification to admin
+        const adminPhone = await getAdminPhone();
+        if (adminPhone) {
+            await sendBookingNotificationToAdmin({
+                telepon: body.telepon,
+                nama: body.nama_pasien,
+                kode: kodeBooking,
+                tanggal: tanggalFormatted,
+                waktu: body.waktu,
+                dokter: dokter.nama,
+                nik: body.nik,
+                keluhan: body.keluhan,
+                adminPhone,
+            });
         }
 
         return successResponse({

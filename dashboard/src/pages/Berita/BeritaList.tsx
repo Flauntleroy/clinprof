@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import PageBreadcrumb from "../../components/common/PageBreadcrumb";
 import PageMeta from "../../components/common/PageMeta";
 import { useToast } from "../../context/ToastContext";
+import { useConfirm } from "../../context/ConfirmContext";
 import { apiGet, apiDelete } from "../../lib/api";
 
 interface Berita {
@@ -36,6 +37,7 @@ interface PaginatedResponse {
 
 export default function BeritaList() {
     const { addToast } = useToast();
+    const confirm = useConfirm();
     const [loading, setLoading] = useState(true);
     const [berita, setBerita] = useState<Berita[]>([]);
     const [categories, setCategories] = useState<Kategori[]>([]);
@@ -99,7 +101,14 @@ export default function BeritaList() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Yakin ingin menghapus berita ini?")) return;
+        const confirmed = await confirm({
+            title: 'Hapus Berita',
+            message: 'Yakin ingin menghapus berita ini?',
+            confirmText: 'Ya, Hapus',
+            cancelText: 'Batal',
+            type: 'danger'
+        });
+        if (!confirmed) return;
         setDeleting(id);
         try {
             const response = await apiDelete(`/berita/${id}`);
