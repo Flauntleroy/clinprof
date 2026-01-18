@@ -119,8 +119,7 @@ export default function PengaturanWhatsApp() {
                             </svg>
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold">Integrasi Fonnte API</h3>
-                            <p className="text-white/80 text-sm">Notifikasi booking otomatis via WhatsApp</p>
+                            <h3 className="text-lg font-semibold">WhatsApp Gateway</h3>
                         </div>
                     </div>
                 </div>
@@ -142,7 +141,7 @@ export default function PengaturanWhatsApp() {
                         <div className="grid md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                    Fonnte Token
+                                    Token
                                 </label>
                                 <input
                                     type="password"
@@ -160,9 +159,7 @@ export default function PengaturanWhatsApp() {
                                         </span>
                                     </div>
                                 )}
-                                <p className="mt-1 text-xs text-gray-500">
-                                    Dapatkan token di <a href="https://fonnte.com" target="_blank" rel="noopener noreferrer" className="text-brand-500 hover:underline">fonnte.com</a>
-                                </p>
+
                             </div>
 
                             <div>

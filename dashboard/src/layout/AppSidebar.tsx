@@ -34,7 +34,6 @@ const navItems: NavItem[] = [
     name: "Booking",
     subItems: [
       { name: "Daftar Booking", path: "/booking", pro: false },
-      { name: "Kalender", path: "/booking/calendar", pro: false },
     ],
   },
   {
@@ -43,7 +42,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Daftar Dokter", path: "/dokter", pro: false },
       { name: "Tambah Dokter", path: "/dokter/tambah", pro: false },
-      { name: "Jadwal Dokter", path: "/dokter/jadwal", pro: false, new: true },
+      { name: "Jadwal Dokter", path: "/dokter/jadwal", pro: false },
     ],
   },
   {
@@ -67,7 +66,7 @@ const navItems: NavItem[] = [
     icon: <PageIcon />,
     subItems: [
       { name: "Semua Berita", path: "/berita", pro: false },
-      { name: "Tambah Berita", path: "/berita/tambah", pro: false, new: true },
+      { name: "Tambah Berita", path: "/berita/tambah", pro: false },
       { name: "Kategori", path: "/berita/kategori", pro: false },
     ],
   },

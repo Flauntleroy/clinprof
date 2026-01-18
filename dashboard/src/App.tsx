@@ -13,9 +13,7 @@ import DashboardHome from "./pages/Dashboard/DashboardHome";
 // Dokter
 import { DokterList, DokterForm } from "./pages/Dokter";
 
-// Booking
 import { BookingList, BookingDetail } from "./pages/Booking";
-import Calendar from "./pages/Calendar";
 
 // Layanan
 import { LayananList, LayananForm } from "./pages/Layanan";
@@ -64,7 +62,6 @@ export default function App() {
                 {/* Booking */}
                 <Route path="/booking" element={<BookingList />} />
                 <Route path="/booking/:id" element={<BookingDetail />} />
-                <Route path="/booking/calendar" element={<Calendar />} />
 
                 {/* Dokter */}
                 <Route path="/dokter" element={<DokterList />} />

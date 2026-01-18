@@ -1,0 +1,40 @@
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Dependencies
+node_modules/
+dashboard/node_modules/
+
+# Build outputs
+.next/
+dashboard/dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+
+# Misc
+*.bak
+*.tmp
