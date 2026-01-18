@@ -4,11 +4,6 @@ import PageMeta from "../../components/common/PageMeta";
 import { useToast } from "../../context/ToastContext";
 import { apiGet, apiPut, getMediaUrl } from "../../lib/api";
 
-interface Pengaturan {
-    key: string;
-    value: string;
-}
-
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
 export default function PengaturanUmum() {

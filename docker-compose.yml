@@ -66,25 +66,9 @@ services:
       retries: 5
     networks:
       - makulabahalap-network
-
   # ================================
   # phpMyAdmin (Optional - for DB management)
   # ================================
-  phpmyadmin:
-    image: phpmyadmin:latest
-    container_name: makulabahalap-pma
-    restart: unless-stopped
-    ports:
-      - "8081:80"
-    environment:
-      - PMA_HOST=db
-      - PMA_USER=root
-      - PMA_PASSWORD=${DB_PASSWORD:-secret}
-    depends_on:
-      - db
-    networks:
-      - makulabahalap-network
-
 networks:
   makulabahalap-network:
     driver: bridge
